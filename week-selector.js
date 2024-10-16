@@ -2,11 +2,21 @@ class WeekSelector extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({ mode: 'open' });
+        this._domReady = false;
+        this._domReadyPromise = new Promise(resolve => {
+            this._resolveDomReady = resolve;
+        });
     }
 
     connectedCallback() {
         this.render();
         this.setupListeners();
+        this._domReady = true;
+        this._resolveDomReady();
+
+        // Set initial date after DOM is ready
+        const initialDate = this.getAttribute('selected-date') || new Date().toISOString().split('T')[0];
+        this.setSelectedDate(new Date(initialDate));
     }
 
     render() {
@@ -48,13 +58,15 @@ class WeekSelector extends HTMLElement {
         this.shadowRoot.getElementById('nextWeek').addEventListener('click', () => this.changeWeek(1));
     }
 
-    changeWeek(offset) {
+    async changeWeek(offset) {
+        await this._domReadyPromise;
         const newDate = new Date(this.selectedDate);
         newDate.setDate(newDate.getDate() + offset * 7);
         this.setSelectedDate(newDate);
     }
 
-    setSelectedDate(date) {
+    async setSelectedDate(date) {
+        await this._domReadyPromise;
         this.selectedDate = this.getNextFriday(date);
         this.updateWeekLabel();
         this.dispatchEvent(new CustomEvent('week-changed', { detail: this.selectedDate }));
@@ -68,12 +80,15 @@ class WeekSelector extends HTMLElement {
         return nextFriday;
     }
 
-    updateWeekLabel() {
+    async updateWeekLabel() {
+        await this._domReadyPromise;
         const startDate = new Date(this.selectedDate);
         startDate.setDate(this.selectedDate.getDate() - 6);
         const weekLabel = this.shadowRoot.getElementById('weekLabel');
+      if (weekLabel) {
         weekLabel.textContent = `${this.formatDate(startDate)} - ${this.formatDate(this.selectedDate)}`;
     }
+  }
 
     formatDate(date) {
         return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
@@ -84,7 +99,7 @@ class WeekSelector extends HTMLElement {
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-        if (name === 'selected-date') {
+        if (name === 'selected-date' && this._domReady) {
             this.setSelectedDate(new Date(newValue));
         }
     }
