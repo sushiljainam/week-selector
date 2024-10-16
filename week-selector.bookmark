@@ -1,4 +1,11 @@
 javascript:(function() {
+    // Prevent multiple injections
+    if (window._weekSelectorInjected) {
+        console.log('Week selector already injected. Skipping.');
+        return;
+    }
+    window._weekSelectorInjected = true;
+
     // Function to load the week-selector script
     function loadScript(src) {
         return new Promise((resolve, reject) => {
@@ -12,9 +19,11 @@ javascript:(function() {
 
     // Function to inject the week-selector
     function injectWeekSelector() {
+        console.log('Injecting week selectors...');
         const dateInputs = document.querySelectorAll('input[type="date"]');
         
-        dateInputs.forEach(dateInput => {
+        dateInputs.forEach((dateInput, index) => {
+            console.log(`Processing date input ${index + 1}/${dateInputs.length}`);
             // Check if a week-selector is already injected for this input
             if (!dateInput.nextElementSibling || !dateInput.nextElementSibling.matches('week-selector')) {
                 const weekSelector = document.createElement('week-selector');
@@ -23,19 +32,25 @@ javascript:(function() {
                 dateInput.parentNode.insertBefore(weekSelector, dateInput.nextSibling);
                 
                 weekSelector.addEventListener('week-changed', (event) => {
+                    console.log('Week changed event received');
                     dateInput.value = event.detail.toISOString().split('T')[0];
                     dateInput.dispatchEvent(new Event('change', { bubbles: true }));
                 });
                 
                 dateInput.addEventListener('change', () => {
+                    console.log('Date input changed');
                     weekSelector.setAttribute('selected-date', dateInput.value);
                 });
             }
         });
+        console.log('Week selector injection complete');
     }
 
     // Load the week-selector script and inject the component
     loadScript('https://unpkg.com/week-selector@1.0.0/week-selector.js')
-        .then(injectWeekSelector)
+        .then(() => {
+            console.log('Week selector script loaded successfully');
+            injectWeekSelector();
+        })
         .catch(error => console.error('Failed to load week-selector.js', error));
 })();

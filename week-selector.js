@@ -6,6 +6,7 @@ class WeekSelector extends HTMLElement {
         this._domReadyPromise = new Promise(resolve => {
             this._resolveDomReady = resolve;
         });
+      this._updating = false;
     }
 
     connectedCallback() {
@@ -59,17 +60,23 @@ class WeekSelector extends HTMLElement {
     }
 
     async changeWeek(offset) {
+      if (this._updating) return;
+      this._updating = true;
         await this._domReadyPromise;
         const newDate = new Date(this.selectedDate);
         newDate.setDate(newDate.getDate() + offset * 7);
-        this.setSelectedDate(newDate);
+      await this.setSelectedDate(newDate);
+      this._updating = false;
     }
 
     async setSelectedDate(date) {
+      if (this._updating) return;
+      this._updating = true;
         await this._domReadyPromise;
         this.selectedDate = this.getNextFriday(date);
-        this.updateWeekLabel();
+      await this.updateWeekLabel();
         this.dispatchEvent(new CustomEvent('week-changed', { detail: this.selectedDate }));
+      this._updating = false;
     }
 
     getNextFriday(date) {
@@ -99,10 +106,12 @@ class WeekSelector extends HTMLElement {
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-        if (name === 'selected-date' && this._domReady) {
+      if (name === 'selected-date' && this._domReady && !this._updating) {
             this.setSelectedDate(new Date(newValue));
         }
     }
 }
 
 customElements.define('week-selector', WeekSelector);
+
+console.log('Week Selector component defined');
