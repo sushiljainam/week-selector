@@ -17,7 +17,8 @@ class WeekSelector extends HTMLElement {
 
         // Set initial date after DOM is ready
         const initialDate = this.getAttribute('selected-date') || new Date().toISOString().split('T')[0];
-        this.setSelectedDate(new Date(initialDate));
+        const fromParent = !!this.getAttribute('selected-date');
+        this.setSelectedDate(new Date(initialDate), fromParent ? 'from_parent' : 'to_parent');
     }
 
     render() {
@@ -65,17 +66,24 @@ class WeekSelector extends HTMLElement {
         await this._domReadyPromise;
         const newDate = new Date(this.selectedDate);
         newDate.setDate(newDate.getDate() + offset * 7);
-        await this.setSelectedDate(newDate);
+        await this.setSelectedDate(newDate, 'to_parent');
         this._updating = false;
     }
 
-    async setSelectedDate(date) {
+    async setSelectedDate(date, eventType) {
         if (this._updating) return;
         this._updating = true;
         await this._domReadyPromise;
+        const toBeDate = this.getNextFriday(date);
+        if (toBeDate.getTime() == this.selectedDate.getTime()) {
+            this._updating = false;
+            return;
+        }
         this.selectedDate = this.getNextFriday(date);
         await this.updateWeekLabel();
-        this.dispatchEvent(new CustomEvent('week-changed', { detail: this.selectedDate }));
+        if (eventType == 'to_parent') {
+            this.dispatchEvent(new CustomEvent('week-changed', { detail: this.selectedDate }));
+        }
         this._updating = false;
     }
 
@@ -107,7 +115,7 @@ class WeekSelector extends HTMLElement {
 
     attributeChangedCallback(name, oldValue, newValue) {
         if (name === 'selected-date' && this._domReady && !this._updating) {
-            this.setSelectedDate(new Date(newValue));
+            this.setSelectedDate(new Date(newValue), 'from_parent');
         }
     }
 }
