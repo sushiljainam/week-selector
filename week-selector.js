@@ -66,8 +66,8 @@ class WeekSelector extends HTMLElement {
         await this._domReadyPromise;
         const newDate = new Date(this.selectedDate);
         newDate.setDate(newDate.getDate() + offset * 7);
-        await this.setSelectedDate(newDate, 'to_parent');
         this._updating = false;
+        await this.setSelectedDate(newDate, 'to_parent');
     }
 
     async setSelectedDate(date, eventType) {
@@ -75,7 +75,7 @@ class WeekSelector extends HTMLElement {
         this._updating = true;
         await this._domReadyPromise;
         const toBeDate = this.getNextFriday(date);
-        if (toBeDate.getTime() == this.selectedDate.getTime()) {
+        if (toBeDate.getTime() == this.selectedDate?.getTime()) {
             this._updating = false;
             return;
         }
